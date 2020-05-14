@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,25 +26,29 @@ public class HomeController {
     private final AlbumsBean albumsBean;
     private final MovieFixtures movieFixtures;
     private final AlbumFixtures albumFixtures;
-    @Autowired
-    @Qualifier("albumsTransactionManager")
     PlatformTransactionManager platformTransactionManagerAlbums;
-    @Autowired
-    @Qualifier("moviesTransactionManager")
-    PlatformTransactionManager platformTransactionManagerMovies;
+    PlatformTransactionManager platformTransactionManagerMovie;
 
-    private TransactionTemplate transactionTemplateMovie;
-    private TransactionTemplate transactionTemplateAlbums;
+    TransactionTemplate transactionTemplate;
+    TransactionTemplate transactionTemplate1;
 
 
 
-    public HomeController(MoviesBean moviesBean, AlbumsBean albumsBean, MovieFixtures movieFixtures, AlbumFixtures albumFixtures) {
+
+  @Autowired
+    public HomeController(MoviesBean moviesBean, AlbumsBean albumsBean, MovieFixtures movieFixtures, AlbumFixtures albumFixtures,
+                          @Qualifier("albumsTransactionManager")PlatformTransactionManager platformTransactionManagerAlbums,
+                          @Qualifier("moviesTransactionManager")
+                                  PlatformTransactionManager platformTransactionManagerMovie) {
         this.moviesBean = moviesBean;
         this.albumsBean = albumsBean;
         this.movieFixtures = movieFixtures;
         this.albumFixtures = albumFixtures;
-        this.transactionTemplateMovie=new TransactionTemplate(platformTransactionManagerMovies);
-        this.transactionTemplateAlbums=new TransactionTemplate(platformTransactionManagerAlbums);
+        this.platformTransactionManagerAlbums=platformTransactionManagerAlbums;
+        this.platformTransactionManagerMovie=platformTransactionManagerMovie;
+        transactionTemplate =new TransactionTemplate(platformTransactionManagerMovie);
+        transactionTemplate1=new TransactionTemplate(platformTransactionManagerAlbums);
+
     }
 
     @GetMapping("/")
@@ -55,26 +61,25 @@ public class HomeController {
 
     @GetMapping("/setup")
     public String setup(Map<String, Object> model) {
-        transactionTemplateMovie.execute(new TransactionCallbackWithoutResult() {
+        for (Movie movie : movieFixtures.load()) {
+        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
             protected void doInTransactionWithoutResult(TransactionStatus status) {
-                for (Movie movie : movieFixtures.load()) {
                     moviesBean.addMovie(movie);
                 }
-            }
-        });
-        transactionTemplateAlbums.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                for (Album album : albumFixtures.load()) {
-                    albumsBean.addAlbum(album);
-                }
-            }
-        });
 
+        });
+    }
+        for (Album album : albumFixtures.load()) {
+            transactionTemplate1.execute(new TransactionCallbackWithoutResult() {
+                protected void doInTransactionWithoutResult(TransactionStatus status) {
+
+                    albumsBean.addAlbum(album);
+
+                }
+            });
+        }
         model.put("movies", moviesBean.getMovies());
         model.put("albums", albumsBean.getAlbums());
-
-
 
         return "setup";
     }

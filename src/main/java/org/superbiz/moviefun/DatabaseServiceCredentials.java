@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-@Component
 public class DatabaseServiceCredentials {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();

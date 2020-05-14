@@ -16,18 +16,28 @@ import javax.sql.DataSource;
 
 @Configuration
 public class Config {
-    @Autowired
-    DatabaseServiceCredentials databaseServiceCredentials;
+    @Bean
+    public DatabaseServiceCredentials databaseServiceCredentials(){
+        //  System.out.println("********************************");
+        String jdbcUrl = System.getenv("VCAP_SERVICES");
+        System.out.println("#############"+jdbcUrl+"################");
+        return new DatabaseServiceCredentials(jdbcUrl);
+    }
+     @Autowired
+     DatabaseServiceCredentials databaseServiceCredentials;
+
     @Bean
     public DataSource albumsDataSource(DatabaseServiceCredentials serviceCredentials) {
         MysqlDataSource dataSource = new MysqlDataSource();
         dataSource.setURL(serviceCredentials.jdbcUrl("albums-mysql"));
+        System.out.println("$$$$$$$$$$$$$$$$$$$$$$albums"+dataSource.getURL()+",");
         return dataSource;
     }
     @Bean
     public DataSource moviesDataSource(DatabaseServiceCredentials serviceCredentials) {
         MysqlDataSource dataSource = new MysqlDataSource();
         dataSource.setURL(serviceCredentials.jdbcUrl("movies-mysql"));
+        System.out.println("$$$$$$$$$$$$$$$$$$$$$$movies"+dataSource.getURL()+",");
         return dataSource;
     }
     @Bean
